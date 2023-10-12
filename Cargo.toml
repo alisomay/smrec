@@ -1,0 +1,38 @@
+[package]
+name = "smrec"
+version = "0.1.0"
+authors = ["alisomay <alisomay@runbox.com>"]
+edition = "2021"
+license = "BSD-3-Clause"
+description = "Minimalist multi-track audio recorder"
+readme = "README.md"
+homepage = "https://github.com/alisomay/smrec"
+repository = "https://github.com/alisomay/smrec"
+documentation = "https://docs.rs/libpd-rs/0.1.0/smrec/#"
+keywords = ["audio", "record", "midi", "osc", "cli"]
+categories = ["multimedia"]
+exclude = [
+    "tests/*",
+    "assets/favicon/*",
+    "assets/logo_*"
+]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dependencies]
+midir = { version = "0.9", features = ["winrt"] }
+clap = { version =  "4", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+chrono = { version = "0.4", features = ["serde"] }
+anyhow = "1.0"
+crossbeam = "0.8"
+rosc = "0.10"
+cpal = "0.15"
+hound = "3.4"
+camino = "1"
+toml = "0.8"
+home = "0.5"
+ctrlc = "3.1"
+thiserror = "1.0"
+glob-match = "0.2"
+nom = "7"
+
