@@ -26,6 +26,8 @@ use crate::midi::Midi;
 #[command(author, version, about, long_about = None)] // Read from `Cargo.toml`
 struct Cli {
     #[arg(long)]
+    asio: bool,
+    #[arg(long)]
     host: Option<String>,
     #[arg(long)]
     device: Option<String>,
@@ -69,6 +71,8 @@ pub type WriterHandles = Arc<Vec<WriterHandle>>;
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
+    
+    let host = choose_host(cli.host, cli.asio)?;
 
     if let Some(command) = cli.command {
         match command {
@@ -90,7 +94,6 @@ fn main() -> Result<()> {
         return Ok(());
     }
 
-    let host = choose_host(cli.host)?;
     let device = Arc::new(choose_device(&host, cli.device)?);
     let writers_container: Arc<Mutex<Option<WriterHandles>>> = Arc::new(Mutex::new(None));
     let stream_container: Arc<Mutex<Option<cpal::Stream>>> = Arc::new(Mutex::new(None));

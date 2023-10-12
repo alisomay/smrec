@@ -17,7 +17,14 @@ exclude = [
     "assets/logo_*"
 ]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+# When https://github.com/RustAudio/cpal/issues/794 is resolved this can continue to track the stable release.
+[target.'cfg(target_os = "windows")'.dependencies]
+cpal = { git = "https://github.com/RustAudio/cpal.git", features = ["asio"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+cpal = { git = "https://github.com/RustAudio/cpal.git" }
+
 [dependencies]
 midir = { version = "0.9", features = ["winrt"] }
 clap = { version =  "4", features = ["derive"] }
@@ -26,7 +33,6 @@ chrono = { version = "0.4", features = ["serde"] }
 anyhow = "1.0"
 crossbeam = "0.8"
 rosc = "0.10"
-cpal = "0.15"
 hound = "3.4"
 camino = "1"
 toml = "0.8"
@@ -35,4 +41,3 @@ ctrlc = "3.1"
 thiserror = "1.0"
 glob-match = "0.2"
 nom = "7"
-
