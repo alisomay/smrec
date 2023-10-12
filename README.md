@@ -6,7 +6,7 @@
 
 Minimalist multi-track audio recorder which may be controlled via OSC or MIDI
 
-Some stuff here..
+An introduction comes here..
 
 Now let's record some sound! 🔔
 
@@ -14,11 +14,13 @@ Now let's record some sound! 🔔
 
 ## Usage
 
-Some stuff here..
+Coming soon.. probably tomorrow.
+I'd not use it if I were you, it's not ready yet.
+It works but it would be better with a doc, just wait a little and it will be here, I'm tired today :).
 
 ## Next steps
 
-Some stuff here..
+Probably run, you'll get it when I write the intro.
 
 ## Support
 
@@ -27,11 +29,11 @@ Some stuff here..
     - `x86_64` ✅
     - `aarch64` ✅
   - linux:
-    - `x86_64` (Should work but not checked yet)
-    - `aarch64` (Should work but not checked yet)
+    - `x86_64` (Should work but not checked yet, will be checked though)
+    - `aarch64` (Should work but not checked yet, will be checked though)
   - windows:
-    - `x86_64` (Should work but not checked yet)
-    - `aarch64` (Should work but not checked yet)
+    - `x86_64` (Should work but not checked yet, will be checked though)
+    - `aarch64` (Should work but not checked yet, will be checked though)
 
 ## Contributing
 
@@ -43,4 +45,4 @@ Thank you 🙏
 
 ## Last words
 
-Some stuff here..
+Coming soon.. probably tomorrow.
