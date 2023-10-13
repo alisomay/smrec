@@ -66,10 +66,10 @@ where
         // Also no locking.
         // I just need to get this working today :)
         // Will update later.
-        let mut channel_buffer = Vec::<Vec<T>>::new();
+        let mut channel_buffer = Vec::<Vec<T>>::with_capacity(channels_to_record.len());
 
         for _ in 0..channels_to_record.len() {
-            channel_buffer.push(Vec::new());
+            channel_buffer.push(Vec::with_capacity(data.len()));
         }
 
         // Channels to record has an ascending order, so does the interleaved data.

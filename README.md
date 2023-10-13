@@ -52,6 +52,10 @@ To install `smrec` on Windows, please follow these steps in order:
 
 If you know what you're doing feel free to skip these steps and consult the [`cpal` documentation](https://github.com/RustAudio/cpal#asio-on-windows).
 
+### Pre-built binaries
+
+Pre-built binaries as an alternative are available for Windows [here](https://github.com/alisomay/smrec/releases) due to the complicated process of building `cpal` with ASIO support on Windows currently.
+
 ## Tutorial
 
 ### Simply as a command
@@ -83,6 +87,12 @@ By using the `--host` and `--device` flag , you can specify the audio host and d
 
 ```
 smrec --device "MacBook Pro Microphone"
+```
+
+#### Listing midi ports and audio hosts and devices
+
+```
+smrec list
 ```
 
 #### Including and excluding channels from a recording
