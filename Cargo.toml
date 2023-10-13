@@ -1,6 +1,6 @@
 [package]
 name = "smrec"
-version = "0.1.0"
+version = "0.1.2"
 authors = ["alisomay <alisomay@runbox.com>"]
 edition = "2021"
 license = "MIT"
@@ -22,8 +22,8 @@ exclude = [
 [target.'cfg(target_os = "windows")'.dependencies]
 cpal = { git = "https://github.com/RustAudio/cpal.git", features = ["asio"] }
 
-[target.'cfg(target_os = "macos")'.dependencies]
-cpal = { git = "https://github.com/RustAudio/cpal.git" }
+# [target.'cfg(target_os = "windows")'.dependencies]
+# cpal = { version = "0.15", features = ["asio"] }
 
 [dependencies]
 midir = { version = "0.9", features = ["winrt"] }
@@ -41,3 +41,5 @@ ctrlc = "3.1"
 thiserror = "1.0"
 glob-match = "0.2"
 nom = "7"
+# cpal = "0.15"
+cpal = { git = "https://github.com/RustAudio/cpal.git" }
