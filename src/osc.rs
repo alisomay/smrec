@@ -35,15 +35,32 @@ impl Osc {
         };
 
         let sender_socket = Arc::new(
-            UdpSocket::bind(send_addr).expect("Failed to bind socket to address {send_addr}"),
+            // We're binding to build the socket, we don't care about the address because we're not going to listen.
+            UdpSocket::bind(SocketAddr::from(([0, 0, 0, 0], 0)))
+                .unwrap_or_else(|_| panic!("Failed to bind socket to address {send_addr}")),
         );
 
+        // The address we're going to send to.
         sender_socket
             .connect(send_addr)
-            .expect("Failed to connect socket to address {send_addr}");
+            .unwrap_or_else(|_| panic!("Failed to connect socket to address {send_addr}"));
+
+        match send_addr.ip() {
+            std::net::IpAddr::V4(addr) => {
+                if addr.is_broadcast() {
+                    if let Err(err) = sender_socket.set_broadcast(true) {
+                        println!("Error setting socket to broadcast: {}", err);
+                    }
+                }
+            }
+            std::net::IpAddr::V6(_) => {
+                panic!("IPv6 is not supported yet.")
+            }
+        }
 
         let receiver_socket = Arc::new(
-            UdpSocket::bind(recv_addr).expect("Failed to bind socket to address {recv_addr}"),
+            UdpSocket::bind(recv_addr)
+                .unwrap_or_else(|_| panic!("Failed to bind socket to address {recv_addr}")),
         );
 
         println!(
