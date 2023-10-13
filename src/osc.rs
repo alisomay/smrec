@@ -38,6 +38,10 @@ impl Osc {
             UdpSocket::bind(send_addr).expect("Failed to bind socket to address {send_addr}"),
         );
 
+        sender_socket
+            .connect(send_addr)
+            .expect("Failed to connect socket to address {send_addr}");
+
         let receiver_socket = Arc::new(
             UdpSocket::bind(recv_addr).expect("Failed to bind socket to address {recv_addr}"),
         );
