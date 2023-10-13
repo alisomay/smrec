@@ -24,7 +24,6 @@ fn parse_u8_or_star(input: &str) -> IResult<&str, u8> {
 }
 
 // Parsing the port name until the first [
-// Parsing the port name until the first [
 fn parse_port_name(input: &str) -> IResult<&str, &str> {
     let (input, _) = multispace0(input)?; // Consume leading spaces
     let (input, name) = take_until("[")(input)?;

@@ -106,8 +106,12 @@ impl SmrecConfig {
         channels_to_record: Vec<usize>,
         cpal_stream_config: SupportedStreamConfig,
     ) -> Result<Self> {
+        let current_dir_config = Utf8PathBuf::from("./.smrec/config.toml");
+
         let path = if let Some(path) = config_path {
             Utf8PathBuf::from_str(&path)?
+        } else if current_dir_config.exists() {
+            current_dir_config
         } else {
             Utf8PathBuf::from_path_buf(
                 home::home_dir().ok_or_else(|| anyhow!("User home directory was not found."))?,
