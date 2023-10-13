@@ -135,6 +135,7 @@ impl SmrecConfig {
                 }
             });
             config.cpal_stream_config = Some(cpal_stream_config);
+            config.out_path = out_path;
             return Ok(config);
         }
 
@@ -190,6 +191,10 @@ impl SmrecConfig {
         } else {
             Utf8PathBuf::from(".")
         };
+
+        if !base.exists() {
+            bail!("Output path which is provided {base} does not exist.");
+        }
 
         let base = base.join(format!("rec_{dirname_date}"));
 

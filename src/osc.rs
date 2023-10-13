@@ -64,7 +64,7 @@ impl Osc {
 
         println!(
             "Will be sending OSC messages to {}",
-            sender_socket.local_addr()?
+            send_addr
         );
         println!(
             "Listening for OSC messages on {}",

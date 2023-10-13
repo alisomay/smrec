@@ -71,7 +71,7 @@ pub type WriterHandles = Arc<Vec<WriterHandle>>;
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
-    
+
     let host = choose_host(cli.host, cli.asio)?;
 
     if let Some(command) = cli.command {
@@ -290,7 +290,7 @@ pub fn new_recording(
         smrec_config.channels_to_record(),
         writer_handles.clone(),
     )?;
-
+    
     new_stream.play()?;
 
     println!("Recording started.");
