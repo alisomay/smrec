@@ -47,7 +47,6 @@ pub fn choose_channels_to_record(
 
 /// Chooses the host to use.
 pub fn choose_host(host: Option<String>, asio: bool) -> Result<cpal::Host> {
-
     #[cfg(target_os = "windows")]
     if asio {
         return Ok(cpal::host_from_id(cpal::HostId::Asio).expect("Failed to initialise ASIO host."));
@@ -135,7 +134,7 @@ impl SmrecConfig {
                         .insert(*channel + 1, format!("chn_{}.wav", channel + 1));
                 }
             });
-
+            config.cpal_stream_config = Some(cpal_stream_config);
             return Ok(config);
         }
 
@@ -249,36 +248,35 @@ where
     deserializer.deserialize_map(UsizeKeyVisitor)
 }
 
-// TODO:
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-//     #[test]
-//     fn deserialize_external_config() {
-//         let config = r#"
-//         [channels]
-//         1 = "channel_1.wav"
-//         2 = "channel_2.wav"
-//         3 = "channel_3.wav"
-//         4 = "channel_4.wav"
-//         5 = "channel_5.wav"
-//         6 = "channel_6.wav"
-//         7 = "channel_7.wav"
-//         8 = "channel_8.wav"
-//         "#;
+    #[test]
+    fn deserialize_external_config() {
+        let config: &str = r#"
+        [channel_names]
+        1 = "channel_1.wav"
+        2 = "channel_2.wav"
+        3 = "channel_3.wav"
+        4 = "channel_4.wav"
+        5 = "channel_5.wav"
+        6 = "channel_6.wav"
+        7 = "channel_7.wav"
+        8 = "channel_8.wav"
+        "#;
 
-//         let config: SmrecConfig = toml::from_str(&config).unwrap();
-//         dbg!(config);
-//         // TODO: Finish the unit test.
-//     }
+        let config: SmrecConfig = toml::from_str(&config).unwrap();
+        dbg!(config);
+        // TODO: Finish the unit test.
+    }
 
-//     #[test]
+    #[test]
 
-//     fn glob() {
-//         assert!(glob_match::glob_match(
-//             "Behring*",
-//             "Behringer UMC1820 192k:192k"
-//         ));
-//     }
-// }
+    fn glob() {
+        assert!(glob_match::glob_match(
+            "Behring*",
+            "Behringer UMC1820 192k:192k"
+        ));
+    }
+}
