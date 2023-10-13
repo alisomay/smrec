@@ -1,6 +1,6 @@
 [package]
 name = "smrec"
-version = "0.1.2"
+version = "0.1.3"
 authors = ["alisomay <alisomay@runbox.com>"]
 edition = "2021"
 license = "MIT"
@@ -21,12 +21,14 @@ exclude = [
 # When https://github.com/RustAudio/cpal/issues/794 is resolved this can continue to track the stable release.
 [target.'cfg(target_os = "windows")'.dependencies]
 cpal = { git = "https://github.com/RustAudio/cpal.git", features = ["asio"] }
+midir = { version = "0.9", features = ["winrt"] }
 
 # [target.'cfg(target_os = "windows")'.dependencies]
 # cpal = { version = "0.15", features = ["asio"] }
+# midir = { version = "0.9", features = ["winrt"] }
 
 [dependencies]
-midir = { version = "0.9", features = ["winrt"] }
+midir = "0.9"
 clap = { version =  "4", features = ["derive"] }
 serde = { version = "1.0", features = ["derive"] }
 chrono = { version = "0.4", features = ["serde"] }

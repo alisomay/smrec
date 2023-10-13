@@ -7,14 +7,14 @@ use std::sync::{Arc, Mutex};
 use crate::wav::write_input_data;
 use crate::WriterHandles;
 
-pub fn build_stream(
+pub fn build(
     device: &cpal::Device,
     config: cpal::SupportedStreamConfig,
     channels_to_record: &[usize],
     writers_in_stream: Arc<Mutex<Option<WriterHandles>>>,
 ) -> Result<cpal::Stream> {
     let stream_error_callback = move |err| {
-        eprintln!("An error occurred on the input stream: {}", err);
+        eprintln!("An error occurred on the input stream: {err}");
     };
 
     match config.sample_format() {

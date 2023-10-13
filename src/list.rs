@@ -7,25 +7,29 @@ pub fn enumerate_audio() -> Result<()> {
     println!("=======================");
     println!("  Supported hosts:\n    {:?}", cpal::ALL_HOSTS);
     let available_hosts = cpal::available_hosts();
-    println!("  Available hosts:\n    {:?}", available_hosts);
+    println!("  Available hosts:\n    {available_hosts:?}");
 
     for host_id in available_hosts {
         println!();
         println!("  {} Default Devices:", host_id.name());
         let host = cpal::host_from_id(host_id)?;
 
-        let default_in = host.default_input_device().map(|e| e.name().unwrap());
-        let default_out = host.default_output_device().map(|e| e.name().unwrap());
-        if let Some(default_in) = default_in {
-            println!("    Default Input Device:\n        {}", default_in);
-        } else {
-            println!("    Default Input Device:\n        None");
-        }
-        if let Some(default_out) = default_out {
-            println!("    Default Output Device:\n        {}", default_out);
-        } else {
-            println!("    Default Output Device:\n        None");
-        }
+        host.default_input_device().map_or_else(
+            || {
+                println!("    Default Input Device:\n        None");
+            },
+            |d| {
+                println!("    Default Input Device:\n        {}", d.name().unwrap());
+            },
+        );
+        host.default_output_device().map_or_else(
+            || {
+                println!("    Default Output Device:\n        None");
+            },
+            |d| {
+                println!("    Default Output Device:\n        {}", d.name().unwrap());
+            },
+        );
 
         let devices = host.devices()?;
         println!();
@@ -45,15 +49,15 @@ pub fn enumerate_audio() -> Result<()> {
                     match conf.buffer_size() {
                         cpal::SupportedBufferSize::Unknown => "unknown".to_string(),
                         cpal::SupportedBufferSize::Range { min, max } =>
-                            format!("{{ min: {}, max: {} }}", min, max),
+                            format!("{{ min: {min}, max: {max} }}"),
                     },
                     conf.sample_format()
                 );
             }
             let input_configs = match device.supported_input_configs() {
                 Ok(f) => f.collect(),
-                Err(e) => {
-                    println!("          Error getting supported input configs: {}", e);
+                Err(err) => {
+                    println!("          Error getting supported input configs: {err}");
                     Vec::new()
                 }
             };
@@ -71,15 +75,15 @@ pub fn enumerate_audio() -> Result<()> {
                     match conf.buffer_size() {
                         cpal::SupportedBufferSize::Unknown => "unknown".to_string(),
                         cpal::SupportedBufferSize::Range { min, max } =>
-                            format!("{{ min: {}, max: {} }}", min, max),
+                            format!("{{ min: {min}, max: {max} }}"),
                     },
                     conf.sample_format()
                 );
             }
             let output_configs = match device.supported_output_configs() {
                 Ok(f) => f.collect(),
-                Err(e) => {
-                    println!("          Error getting supported output configs: {}", e);
+                Err(err) => {
+                    println!("          Error getting supported output configs: {err}");
                     Vec::new()
                 }
             };
@@ -93,9 +97,9 @@ pub fn enumerate_audio() -> Result<()> {
 }
 
 pub fn enumerate_midi() -> Result<()> {
-    let mut midi_in = MidiInput::new("midir test input")?;
+    let mut midi_in = MidiInput::new("dummy input")?;
     midi_in.ignore(Ignore::None);
-    let midi_out = MidiOutput::new("midir test output")?;
+    let midi_out = MidiOutput::new("dummy output")?;
 
     println!("Midi Ports");
     println!("==========");

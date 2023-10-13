@@ -20,8 +20,6 @@ use types::Action;
 use crate::config::{choose_channels_to_record, SmrecConfig};
 use crate::midi::Midi;
 
-// TODO: Catch ctrl+c and stop recording.
-
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)] // Read from `Cargo.toml`
 struct Cli {
@@ -94,7 +92,7 @@ fn main() -> Result<()> {
         return Ok(());
     }
 
-    let device = Arc::new(choose_device(&host, cli.device)?);
+    let device = choose_device(&host, cli.device)?;
     let writers_container: Arc<Mutex<Option<WriterHandles>>> = Arc::new(Mutex::new(None));
     let stream_container: Arc<Mutex<Option<cpal::Stream>>> = Arc::new(Mutex::new(None));
 
@@ -129,7 +127,11 @@ fn main() -> Result<()> {
             if osc_config.len() > 2 {
                 bail!("Too many arguments for --osc");
             }
-            let mut osc = Osc::new(osc_config, to_main_thread.clone(), from_main_thread.clone())?;
+            let mut osc = Osc::new(
+                &osc_config,
+                to_main_thread.clone(),
+                from_main_thread.clone(),
+            )?;
             osc.listen();
             Some(osc)
         } else {
@@ -137,7 +139,7 @@ fn main() -> Result<()> {
         };
 
         let midi = if let Some(midi) = cli_midi {
-            let mut midi = Midi::new(to_main_thread, from_main_thread, midi)?;
+            let mut midi = Midi::new(to_main_thread, from_main_thread, &midi)?;
             midi.listen()?;
             Some(midi)
         } else {
@@ -149,63 +151,63 @@ fn main() -> Result<()> {
                 // Pass
             }
             _ => listen_and_block_main_thread(
-                from_listener_thread.clone(),
-                to_listener_thread.clone(),
-                device.clone(),
-                stream_container.clone(),
-                writers_container.clone(),
-                smrec_config.clone(),
+                &from_listener_thread,
+                &to_listener_thread,
+                &device,
+                &stream_container,
+                &writers_container,
+                &smrec_config,
             ),
         }
 
         // No listeners, just start recording, for ever or for a certain duration.
 
         new_recording(
-            device.clone(),
-            stream_container.clone(),
-            writers_container.clone(),
-            smrec_config.clone(),
+            &device,
+            &stream_container,
+            &writers_container,
+            &smrec_config,
         )?;
 
-        if let Some(dur) = cli.duration {
-            let secs = dur
-                .parse::<u64>()
-                .expect("--duration must be a positive integer.");
-            std::thread::park_timeout(std::time::Duration::from_secs(secs));
-        } else {
-            std::thread::park();
-        }
+        cli.duration.map_or_else(
+            || {
+                std::thread::park();
+            },
+            |dur| {
+                let secs = dur
+                    .parse::<u64>()
+                    .expect("--duration must be a positive integer.");
+                std::thread::park_timeout(std::time::Duration::from_secs(secs));
+            },
+        );
 
-        stop_recording(stream_container.clone(), writers_container.clone())?;
+        stop_recording(&stream_container, &writers_container)?;
         println!("Recording complete!");
     } else {
-        bail!("No default input config found for device");
+        bail!("No default input config found for device.");
     }
 
     Ok(())
 }
 
 pub fn listen_and_block_main_thread(
-    from_listener_thread: crossbeam::channel::Receiver<Action>,
-    to_listener_thread: crossbeam::channel::Sender<Action>,
-    device: Arc<cpal::Device>,
-    stream_container: Arc<Mutex<Option<cpal::Stream>>>,
-    writers_container: Arc<Mutex<Option<WriterHandles>>>,
-    smrec_config: Arc<SmrecConfig>,
+    from_listener_thread: &crossbeam::channel::Receiver<Action>,
+    to_listener_thread: &crossbeam::channel::Sender<Action>,
+    device: &cpal::Device,
+    stream_container: &Arc<Mutex<Option<cpal::Stream>>>,
+    writers_container: &Arc<Mutex<Option<WriterHandles>>>,
+    smrec_config: &SmrecConfig,
 ) {
     loop {
         match from_listener_thread.recv() {
             Ok(Action::Start) => {
-                if let Err(err) = new_recording(
-                    device.clone(),
-                    stream_container.clone(),
-                    writers_container.clone(),
-                    smrec_config.clone(),
-                ) {
-                    println!("Error starting recording: {}", err);
+                if let Err(err) =
+                    new_recording(device, stream_container, writers_container, smrec_config)
+                {
+                    println!("Error starting recording: {err}");
 
                     to_listener_thread
-                        .send(Action::Err(format!("Error starting recording: {}", err)))
+                        .send(Action::Err(format!("Error starting recording: {err}")))
                         .expect("Internal thread error.");
                 } else {
                     to_listener_thread
@@ -214,12 +216,10 @@ pub fn listen_and_block_main_thread(
                 }
             }
             Ok(Action::Stop) => {
-                if let Err(err) =
-                    stop_recording(stream_container.clone(), writers_container.clone())
-                {
-                    println!("Error stopping recording: {}", err);
+                if let Err(err) = stop_recording(stream_container, writers_container) {
+                    println!("Error stopping recording: {err}");
                     to_listener_thread
-                        .send(Action::Err(format!("Error starting recording: {}", err)))
+                        .send(Action::Err(format!("Error starting recording: {err}")))
                         .expect("Internal thread error.");
                 } else {
                     to_listener_thread
@@ -227,9 +227,9 @@ pub fn listen_and_block_main_thread(
                         .expect("Internal thread error.");
                 }
             }
-            // Should not be used here though.
+            // Should not be used here though, no user facing api anyway.
             Ok(Action::Err(err)) => {
-                println!("Error: {}", err);
+                println!("Error: {err}");
             }
             Err(_) => {
                 println!("Error receiving from listener thread.");
@@ -239,86 +239,79 @@ pub fn listen_and_block_main_thread(
 }
 
 pub fn new_recording(
-    device: Arc<cpal::Device>,
-    stream_container: Arc<Mutex<Option<cpal::Stream>>>,
-    writer_handles: Arc<Mutex<Option<WriterHandles>>>,
-    smrec_config: Arc<SmrecConfig>,
+    device: &cpal::Device,
+    stream_container: &Arc<Mutex<Option<cpal::Stream>>>,
+    writer_handles: &Arc<Mutex<Option<WriterHandles>>>,
+    smrec_config: &SmrecConfig,
 ) -> Result<()> {
-    let mut stream_guard = stream_container.lock().unwrap();
-    let mut writer_handles_guard = writer_handles.lock().unwrap();
-
     // If there's an active stream, pause it and finalize the writers
-    if let Some(stream) = stream_guard.as_mut() {
+    if let Some(stream) = stream_container.lock().unwrap().as_mut() {
         stream.pause()?;
-
-        if let Some(writers) = writer_handles_guard.as_mut() {
-            for writer in writers.iter() {
-                writer.lock().unwrap().take().unwrap().finalize()?;
-            }
-        }
+        finalize_writers_if_some(writer_handles).unwrap();
         println!("Restarting new recording...");
     } else {
         println!("Starting recording...");
     }
 
-    // New writers
+    // Make new writers
     let writers = smrec_config.writers()?;
-    writer_handles_guard.replace(writers);
+    // Replace the old ones.
+    writer_handles.lock().unwrap().replace(writers);
 
-    let writers_handles_in_ctrlc = writer_handles.clone();
-
-    // Ignore error.
+    // Errors when ctrl+c handler is already set. We ignore this error since we have no intention of a reset.
+    let writer_handles_in_ctrlc = Arc::clone(writer_handles);
     let _ = ctrlc::try_set_handler(move || {
         // TODO: Necessary to drop stream?
-        let writers = writers_handles_in_ctrlc.lock().unwrap().take();
-        if let Some(writers) = writers {
-            for writer in writers.iter() {
-                if let Some(writer) = writer.lock().unwrap().take() {
-                    writer.finalize().unwrap();
-                }
-            }
-        }
+
+        // TODO: Maybe inform user in unsuccessful operation?
+        finalize_writers_if_some(&writer_handles_in_ctrlc).unwrap();
+
         // TODO: Better message, differentiate if the recording was stopped or interrupted.
-        println!("\rRecording interrupted!");
-        std::process::exit(1);
+        println!("\rRecording interrupted thus stopped.");
+        std::process::exit(0);
     });
 
     // Create and start a new stream
-    let new_stream = stream::build_stream(
-        &device,
+    let new_stream = stream::build(
+        device,
         smrec_config.supported_cpal_stream_config(),
         smrec_config.channels_to_record(),
-        writer_handles.clone(),
+        Arc::clone(writer_handles),
     )?;
-    
+
     new_stream.play()?;
-
     println!("Recording started.");
-
-    stream_guard.replace(new_stream);
+    stream_container.lock().unwrap().replace(new_stream);
 
     Ok(())
 }
 
 pub fn stop_recording(
-    stream_container: Arc<Mutex<Option<cpal::Stream>>>,
-    writer_handles: Arc<Mutex<Option<WriterHandles>>>,
+    stream_container: &Arc<Mutex<Option<cpal::Stream>>>,
+    writer_handles: &Arc<Mutex<Option<WriterHandles>>>,
 ) -> Result<()> {
     println!("Stopping recording...");
 
     let mut stream_guard = stream_container.lock().unwrap();
     if let Some(stream) = stream_guard.take() {
         stream.pause()?;
-
-        if let Some(writers) = writer_handles.lock().unwrap().as_ref() {
-            for writer in writers.iter() {
-                writer.lock().unwrap().take().unwrap().finalize()?;
-            }
-        }
+        finalize_writers_if_some(writer_handles)?;
         println!("Recording stopped.");
         return Ok(());
     }
     println!("There is no running recording to stop.");
 
+    Ok(())
+}
+
+pub fn finalize_writers_if_some(writers: &Arc<Mutex<Option<WriterHandles>>>) -> Result<()> {
+    let writers = writers.lock().unwrap().take();
+    if let Some(writers) = writers {
+        for writer in writers.iter() {
+            if let Some(writer) = writer.lock().unwrap().take() {
+                writer.finalize().unwrap();
+            }
+        }
+    }
     Ok(())
 }

@@ -1,4 +1,4 @@
-use crate::wav::wav_spec_from_config;
+use crate::wav::spec_from_config;
 use crate::WriterHandles;
 use anyhow::{anyhow, bail, Result};
 use camino::Utf8PathBuf;
@@ -46,9 +46,9 @@ pub fn choose_channels_to_record(
 }
 
 /// Chooses the host to use.
-pub fn choose_host(host: Option<String>, asio: bool) -> Result<cpal::Host> {
+pub fn choose_host(host: Option<String>, _asio: bool) -> Result<cpal::Host> {
     #[cfg(target_os = "windows")]
-    if asio {
+    if _asio {
         return Ok(cpal::host_from_id(cpal::HostId::Asio).expect("Failed to initialise ASIO host."));
     }
 
@@ -128,7 +128,7 @@ impl SmrecConfig {
 
         if path.exists() {
             let config = std::fs::read_to_string(path)?;
-            let mut config: SmrecConfig = toml::from_str(&config)?;
+            let mut config: Self = toml::from_str(&config)?;
             config.channels_to_record = channels_to_record;
 
             config.channels_to_record.iter().for_each(|channel| {
@@ -211,7 +211,7 @@ impl SmrecConfig {
         let mut writers = Vec::new();
         for channel_num in &self.channels_to_record {
             let name = self.get_channel_name_from_0_indexed_channel_num(*channel_num)?;
-            let spec = wav_spec_from_config(&self.supported_cpal_stream_config());
+            let spec = spec_from_config(&self.supported_cpal_stream_config());
             let writer = hound::WavWriter::create(base.join(&name), spec)
                 .expect("Failed to create wav writer.");
             writers.push(Arc::new(Mutex::new(Some(writer))));
@@ -275,17 +275,10 @@ mod tests {
         8 = "channel_8.wav"
         "#;
 
-        let config: SmrecConfig = toml::from_str(&config).unwrap();
-        dbg!(config);
-        // TODO: Finish the unit test.
-    }
+        let config: SmrecConfig = toml::from_str(config).unwrap();
 
-    #[test]
-
-    fn glob() {
-        assert!(glob_match::glob_match(
-            "Behring*",
-            "Behringer UMC1820 192k:192k"
-        ));
+        config.channel_names.iter().for_each(|(key, value)| {
+            assert_eq!(key.to_string(), value.replace("channel_", ""));
+        });
     }
 }

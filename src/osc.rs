@@ -17,7 +17,7 @@ pub struct Osc {
 
 impl Osc {
     pub fn new(
-        osc_config: Vec<String>,
+        osc_config: &[String],
         sender_channel: crossbeam::channel::Sender<Action>,
         receiver_channel: crossbeam::channel::Receiver<Action>,
     ) -> Result<Self> {
@@ -49,7 +49,7 @@ impl Osc {
             std::net::IpAddr::V4(addr) => {
                 if addr.is_broadcast() {
                     if let Err(err) = sender_socket.set_broadcast(true) {
-                        println!("Error setting socket to broadcast: {}", err);
+                        println!("Error setting socket to broadcast: {err}");
                     }
                 }
             }
@@ -62,7 +62,7 @@ impl Osc {
             std::net::IpAddr::V4(addr) => {
                 if addr.is_broadcast() {
                     if let Err(err) = sender_socket.set_broadcast(true) {
-                        println!("Error setting socket to broadcast: {}", err);
+                        println!("Error setting socket to broadcast: {err}");
                     }
                 }
             }
@@ -76,10 +76,7 @@ impl Osc {
                 .unwrap_or_else(|_| panic!("Failed to bind socket to address {recv_addr}")),
         );
 
-        println!(
-            "Will be sending OSC messages to {}",
-            send_addr
-        );
+        println!("Will be sending OSC messages to {send_addr}");
         println!(
             "Listening for OSC messages on {}",
             receiver_socket.local_addr()?
@@ -109,7 +106,7 @@ impl Osc {
                             }))
                             .expect("OSC packet should encode."),
                         ) {
-                            println!("Error sending OSC packet: {}", err);
+                            println!("Error sending OSC packet: {err}");
                         };
                     }
                     Ok(Action::Stop) => {
@@ -120,7 +117,7 @@ impl Osc {
                             }))
                             .expect("OSC packet should encode."),
                         ) {
-                            println!("Error sending OSC packet: {}", err);
+                            println!("Error sending OSC packet: {err}");
                         };
                     }
                     Ok(Action::Err(err)) => {
@@ -131,11 +128,11 @@ impl Osc {
                             }))
                             .expect("OSC packet should encode."),
                         ) {
-                            println!("Error sending OSC packet: {}", err);
+                            println!("Error sending OSC packet: {err}");
                         };
                     }
-                    Err(e) => {
-                        println!("Error receiving from channel: {}", e);
+                    Err(err) => {
+                        println!("Error receiving from channel: {err}");
                     }
                 }
             }));
@@ -151,14 +148,14 @@ impl Osc {
                     match socket.recv_from(&mut buf) {
                         Ok((size, _addr)) => match rosc::decoder::decode_udp(&buf[..size]) {
                             Ok((_, osc_packet)) => {
-                                handle_packet(&osc_packet, sender_channel.clone());
+                                handle_packet(&osc_packet, &sender_channel);
                             }
-                            Err(e) => {
-                                println!("Error decoding UDP packet: {}", e);
+                            Err(err) => {
+                                println!("Error decoding UDP packet: {err}");
                             }
                         },
-                        Err(e) => {
-                            println!("Error receiving from socket: {}", e);
+                        Err(err) => {
+                            println!("Error receiving from socket: {err}");
                         }
                     }
                 }
@@ -167,7 +164,7 @@ impl Osc {
     }
 }
 
-fn handle_packet(packet: &OscPacket, channel: crossbeam::channel::Sender<Action>) {
+fn handle_packet(packet: &OscPacket, channel: &crossbeam::channel::Sender<Action>) {
     match packet {
         OscPacket::Message(message) => {
             handle_message(message, channel);
@@ -176,12 +173,12 @@ fn handle_packet(packet: &OscPacket, channel: crossbeam::channel::Sender<Action>
             bundle
                 .content
                 .iter()
-                .for_each(|packet| handle_packet(packet, channel.clone()));
+                .for_each(|packet| handle_packet(packet, channel));
         }
     }
 }
 
-fn handle_message(message: &OscMessage, channel: crossbeam::channel::Sender<Action>) {
+fn handle_message(message: &OscMessage, channel: &crossbeam::channel::Sender<Action>) {
     match message.addr.as_str() {
         "/smrec/start" => {
             channel.send(Action::Start).unwrap();

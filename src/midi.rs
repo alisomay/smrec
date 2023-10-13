@@ -10,7 +10,7 @@ use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 
-pub enum MessageType {
+enum MessageType {
     NoteOff,
     NoteOn,
     PolyphonicAfterTouch,
@@ -21,7 +21,7 @@ pub enum MessageType {
     Ignored,
 }
 
-pub fn get_message_type(message: &[u8]) -> MessageType {
+const fn get_message_type(message: &[u8]) -> MessageType {
     match message[0] >> 4 {
         0x8 => MessageType::NoteOff,
         0x9 => MessageType::NoteOn,
@@ -34,11 +34,11 @@ pub fn get_message_type(message: &[u8]) -> MessageType {
     }
 }
 
-pub fn get_channel(message: &[u8]) -> u8 {
-    message[0] & 0b00001111
+const fn get_channel(message: &[u8]) -> u8 {
+    message[0] & 0b0000_1111
 }
 
-pub fn make_cc_message(channel: u8, cc_num: u8, value: u8) -> [u8; 3] {
+const fn make_cc_message(channel: u8, cc_num: u8, value: u8) -> [u8; 3] {
     [0xB0 + channel, cc_num, value]
 }
 
@@ -125,7 +125,7 @@ impl Midi {
     pub fn new(
         sender_channel: crossbeam::channel::Sender<Action>,
         receiver_channel: crossbeam::channel::Receiver<Action>,
-        cli_config: Vec<String>,
+        cli_config: &[String],
     ) -> Result<Self> {
         let input = MidiInput::new("smrec")?;
 
@@ -161,7 +161,7 @@ impl Midi {
         let input_ports = self
             .input_config
             .iter()
-            .flat_map(|(port_name, configs)| {
+            .filter_map(|(port_name, configs)| {
                 let input_ports = self.find_input_ports(port_name).ok()?;
                 Some(
                     input_ports
@@ -241,7 +241,7 @@ impl Midi {
                                         }
                                     }
                                 } else {
-                                    println!("Invalid CC message: {:?}", message);
+                                    println!("Invalid CC message: {message:?}");
                                 }
                             }
                         },
@@ -255,7 +255,7 @@ impl Midi {
             let output_connections = {
                 let output_ports = output_config
                     .iter()
-                    .flat_map(|(port_name, configs)| {
+                    .filter_map(|(port_name, configs)| {
                         let output_ports = self.find_output_ports(port_name).ok()?;
                         Some(
                             output_ports
@@ -298,7 +298,7 @@ impl Midi {
                     if let Ok(action) = receiver_channel.recv() {
                         match action {
                             Action::Start => {
-                                for (port_name, connection, configs) in output_connections.iter() {
+                                for (port_name, connection, configs) in &output_connections {
                                     for (channel, start_cc_num, _) in configs {
                                         // Send to all channels if channel is 255.
                                         if channel == &255 {
@@ -329,7 +329,7 @@ impl Midi {
                                 }
                             }
                             Action::Stop => {
-                                for (port_name, connection, configs) in output_connections.iter() {
+                                for (port_name, connection, configs) in &output_connections {
                                     for (channel, _, stop_cc_num) in configs {
                                         // Send to all channels if channel is 255.
                                         if channel == &255 {
@@ -359,8 +359,8 @@ impl Midi {
                                     }
                                 }
                             }
-                            _ => {
-                                // Pass
+                            Action::Err(_) => {
+                                // Ignore, we don't send midi messages when errors occur.
                             }
                         }
                     }

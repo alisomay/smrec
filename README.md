@@ -7,9 +7,10 @@
 Minimalist multi-track audio recorder which may be controlled via OSC or MIDI.
 
 I did this because I needed a simple multi-track audio recorder which I could control via OSC or MIDI.
-I didn't want and do not have the resources to use a DAW for this purpose in my setup.
-I wanted mono wave files for each channel organized in a directory per recording by date and time.
-I'm using this recorder in a setup where I use a Behringer XR18 as the audio interface and a LattePanda 3 Delta as a SBC.
+
+I didn't want and do not have the resources to use a DAW for this purpose in my setup and wanted mono wave files for each channel organized in a directory per recording by date and time
+
+I'm using this recorder in a setup where I use a [Behringer XR18](https://www.behringer.com/product.html?modelCode=P0BI8) as an audio interface and a [LattePanda 3 Delta](https://www.lattepanda.com/lattepanda-3-delta) as a SBC.
 
 Now let's record some sound! 🔔
 
@@ -44,7 +45,10 @@ To install `smrec` on Windows, please follow these steps in order:
   . .\pre-build-win.ps1
   ```
   this script will download the ASIO SDK, set Visual Studio environment variables and `CPAL_ASIO_DIR` variable for the current shell session.
-- Run `cargo install smrec` as usual
+- Install as usual
+  ```
+  cargo install smrec
+  ```
 
 If you know what you're doing feel free to skip these steps and consult the [`cpal` documentation](https://github.com/RustAudio/cpal#asio-on-windows).
 
@@ -171,14 +175,14 @@ Yes, `smrec` can also broadcast OSC messages is the OS and the network allows it
 
 The messages which `smrec` listens for are:
 
-`/smrec/start` - Starts the recording, sending a second start will stop the running recording and starts a new one creating a new directory in the specified root.
-`/smrec/stop` - Stops the recording if there is a running one.
+- `/smrec/start` - Starts the recording, sending a second start will stop the running recording and starts a new one creating a new directory in the specified root.
+- `/smrec/stop` - Stops the recording if there is a running one.
 
 The messages which `smrec` sends are:
 
-`/smrec/start` - Sent when a new recording is started.
-`/smrec/stop` - Sent when a running recording is stopped.
-`/smrec/error <string>`- Sent when some errors occur and the error message is transferred a string in the argument.
+- `/smrec/start` - Sent when a new recording is started.
+- `/smrec/stop` - Sent when a running recording is stopped.
+- `/smrec/error <string>`- Sent when some errors occur and the error message is transferred a string in the argument.
 
 ### MIDI control
 

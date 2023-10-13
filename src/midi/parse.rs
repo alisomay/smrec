@@ -15,6 +15,7 @@ use nom::{
 
 use crate::midi::MidiConfig;
 
+/// Parses * or a u8 ranged number
 fn parse_u8_or_star(input: &str) -> IResult<&str, u8> {
     let star_parser = map(char('*'), |_| 255_u8);
     let num_parser = map_res(preceded(multispace0, digit1), str::parse::<u8>);
@@ -23,7 +24,12 @@ fn parse_u8_or_star(input: &str) -> IResult<&str, u8> {
     alt((num_parser, star_parser))(input)
 }
 
-// Parsing the port name until the first [
+/// Parses a u8 ranged number
+fn parse_u8(input: &str) -> IResult<&str, u8> {
+    map_res(preceded(multispace0, digit1), str::parse::<u8>)(input)
+}
+
+/// Parses the port name until the first [
 fn parse_port_name(input: &str) -> IResult<&str, &str> {
     let (input, _) = multispace0(input)?; // Consume leading spaces
     let (input, name) = take_until("[")(input)?;
@@ -31,7 +37,7 @@ fn parse_port_name(input: &str) -> IResult<&str, &str> {
     Ok((input, name))
 }
 
-// Parse channel and its CC numbers
+/// Parses channel and its CC numbers a three element tuple (<u8 or *>, u8, u8)
 fn parse_channel_and_ccs(input: &str) -> IResult<&str, (u8, u8, u8)> {
     delimited(
         preceded(multispace0, char('(')),
@@ -41,17 +47,26 @@ fn parse_channel_and_ccs(input: &str) -> IResult<&str, (u8, u8, u8)> {
                 multispace0,
                 delimited(
                     preceded(multispace0, char(',')),
-                    parse_u8_or_star,
+                    parse_u8,
                     preceded(multispace0, char(',')),
                 ),
             ),
-            preceded(multispace0, parse_u8_or_star),
+            preceded(multispace0, parse_u8),
         )),
         preceded(multispace0, char(')')),
     )(input)
 }
 
-// Parsing an entire port configuration
+/// Parse a list of channels and CCs [(..), (..), (..)]
+fn parse_list(input: &str) -> IResult<&str, Vec<(u8, u8, u8)>> {
+    delimited(
+        preceded(multispace0, char('[')),
+        separated_list0(preceded(multispace0, char(',')), parse_channel_and_ccs),
+        preceded(multispace0, char(']')),
+    )(input)
+}
+
+/// Parses an entire port configuration
 fn parse_port(input: &str) -> IResult<&str, (&str, Vec<(u8, u8, u8)>)> {
     // Consume leading spaces
     let (input, _) = multispace0(input)?;
@@ -68,7 +83,7 @@ fn parse_port(input: &str) -> IResult<&str, (&str, Vec<(u8, u8, u8)>)> {
     Ok((input, (port_name, channels_and_ccs)))
 }
 
-// Parsing the complete MIDI input
+/// Parses the complete MIDI input or output configuration
 fn parse_midi_config_raw(input: &str) -> IResult<&str, Vec<(&str, Vec<(u8, u8, u8)>)>> {
     delimited(
         preceded(multispace0, char('[')),
@@ -77,14 +92,7 @@ fn parse_midi_config_raw(input: &str) -> IResult<&str, Vec<(&str, Vec<(u8, u8, u
     )(input)
 }
 
-fn parse_list(input: &str) -> IResult<&str, Vec<(u8, u8, u8)>> {
-    delimited(
-        preceded(multispace0, char('[')),
-        separated_list0(preceded(multispace0, char(',')), parse_channel_and_ccs),
-        preceded(multispace0, char(']')),
-    )(input)
-}
-
+/// Parses the [`MidiConfig`] from the provided configuration string.
 pub fn parse_midi_config(input: &str) -> Result<MidiConfig> {
     let mut map: HashMap<String, Vec<(u8, u8, u8)>> = HashMap::new();
     let (_, port_configs) = parse_midi_config_raw(input)
@@ -101,9 +109,18 @@ mod tests {
 
     #[test]
     fn test_parse_u8() {
+        assert_eq!(parse_u8("23"), Ok(("", 23)));
+        assert_eq!(parse_u8("  23"), Ok(("", 23)));
+        assert_eq!(parse_u8("0"), Ok(("", 0)));
+        assert!(parse_u8("256").is_err());
+    }
+
+    #[test]
+    fn test_parse_u8_or_star() {
         assert_eq!(parse_u8_or_star("23"), Ok(("", 23)));
         assert_eq!(parse_u8_or_star("  23"), Ok(("", 23)));
         assert_eq!(parse_u8_or_star("0"), Ok(("", 0)));
+        assert_eq!(parse_u8_or_star("*"), Ok(("", 255)));
         assert!(parse_u8_or_star("256").is_err());
     }
 
