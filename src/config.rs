@@ -136,6 +136,13 @@ impl SmrecConfig {
                     config
                         .channel_names
                         .insert(*channel + 1, format!("chn_{}.wav", channel + 1));
+                } else {
+                    let name = config.channel_names.get(&(channel + 1)).unwrap();
+                    if !name.ends_with(".wav") {
+                        config
+                            .channel_names
+                            .insert(*channel + 1, format!("{}.wav", name));
+                    }
                 }
             });
             config.cpal_stream_config = Some(cpal_stream_config);
