@@ -272,14 +272,14 @@ mod tests {
     fn deserialize_external_config() {
         let config: &str = r#"
         [channel_names]
-        1 = "channel_1.wav"
-        2 = "channel_2.wav"
-        3 = "channel_3.wav"
-        4 = "channel_4.wav"
-        5 = "channel_5.wav"
-        6 = "channel_6.wav"
-        7 = "channel_7.wav"
-        8 = "channel_8.wav"
+        1 = "channel_1"
+        2 = "channel_2"
+        3 = "channel_3"
+        4 = "channel_4"
+        5 = "channel_5"
+        6 = "channel_6"
+        7 = "channel_7"
+        8 = "channel_8"
         "#;
 
         let config: SmrecConfig = toml::from_str(config).unwrap();

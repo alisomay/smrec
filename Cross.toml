@@ -1,0 +1,29 @@
+# [target.aarch64-unknown-linux-gnu.dockerfile]
+# file = "./docker/cross/Dockerfile"         
+# context = "."                
+# build-args = {} 
+
+# [target.armv7-unknown-linux-gnueabihf.dockerfile]
+# file = "./docker/cross/Dockerfile"         
+# context = "."                
+# build-args = {} 
+
+[target.aarch64-unknown-linux-gnu]
+runner = "qemu-user" 
+# pre-build = ["export BUILDKIT_PROGRESS=plain"]
+pre-build = [
+  "export BUILDKIT_PROGRESS=plain",
+  "dpkg --add-architecture $CROSS_DEB_ARCH", 
+  "apt-get update && apt-get --assume-yes install libasound2-dev:$CROSS_DEB_ARCH libjack-jackd2-dev:$CROSS_DEB_ARCH" 
+]
+
+
+[target.armv7-unknown-linux-gnueabihf]
+runner = "qemu-user" 
+# pre-build = ["export BUILDKIT_PROGRESS=plain"]
+
+pre-build = [
+  "export BUILDKIT_PROGRESS=plain",
+  "dpkg --add-architecture $CROSS_DEB_ARCH", 
+  "apt-get update && apt-get --assume-yes install libasound2-dev:$CROSS_DEB_ARCH libjack-jackd2-dev:$CROSS_DEB_ARCH" 
+]
