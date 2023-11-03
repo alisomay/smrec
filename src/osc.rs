@@ -49,7 +49,7 @@ impl Osc {
             std::net::IpAddr::V4(addr) => {
                 if addr.is_broadcast() {
                     if let Err(err) = sender_socket.set_broadcast(true) {
-                        println!("Error setting socket to broadcast: {err}");
+                        eprintln!("Error setting socket to broadcast: {err}");
                     }
                 }
             }
@@ -62,7 +62,7 @@ impl Osc {
             std::net::IpAddr::V4(addr) => {
                 if addr.is_broadcast() {
                     if let Err(err) = sender_socket.set_broadcast(true) {
-                        println!("Error setting socket to broadcast: {err}");
+                        eprintln!("Error setting socket to broadcast: {err}");
                     }
                 }
             }
@@ -106,7 +106,7 @@ impl Osc {
                             }))
                             .expect("OSC packet should encode."),
                         ) {
-                            println!("Error sending OSC packet: {err}");
+                            eprintln!("Error sending OSC packet: {err}");
                         };
                     }
                     Ok(Action::Stop) => {
@@ -117,7 +117,7 @@ impl Osc {
                             }))
                             .expect("OSC packet should encode."),
                         ) {
-                            println!("Error sending OSC packet: {err}");
+                            eprintln!("Error sending OSC packet: {err}");
                         };
                     }
                     Ok(Action::Err(err)) => {
@@ -128,11 +128,11 @@ impl Osc {
                             }))
                             .expect("OSC packet should encode."),
                         ) {
-                            println!("Error sending OSC packet: {err}");
+                            eprintln!("Error sending OSC packet: {err}");
                         };
                     }
                     Err(err) => {
-                        println!("Error receiving from channel: {err}");
+                        eprintln!("Error receiving from channel: {err}");
                     }
                 }
             }));
@@ -151,11 +151,11 @@ impl Osc {
                                 handle_packet(&osc_packet, &sender_channel);
                             }
                             Err(err) => {
-                                println!("Error decoding UDP packet: {err}");
+                                eprintln!("Error decoding UDP packet: {err}");
                             }
                         },
                         Err(err) => {
-                            println!("Error receiving from socket: {err}");
+                            eprintln!("Error receiving from socket: {err}");
                         }
                     }
                 }

@@ -1,5 +1,8 @@
 mod parse;
 
+const CHANNEL_MASK: u8 = 0b0000_1111;
+const ANY_CHANNEL_INTERNAL: u8 = 0xFF;
+
 use crate::types::Action;
 use anyhow::{bail, Result};
 use midir::{
@@ -35,7 +38,7 @@ const fn get_message_type(message: &[u8]) -> MessageType {
 }
 
 const fn get_channel(message: &[u8]) -> u8 {
-    message[0] & 0b0000_1111
+    message[0] & CHANNEL_MASK
 }
 
 const fn make_cc_message(channel: u8, cc_num: u8, value: u8) -> [u8; 3] {
@@ -204,7 +207,7 @@ impl Midi {
                                     let any_channel_receive_configs = configs
                                         .iter()
                                         .filter(|(chn, start_cc_num, stop_cc_num)| {
-                                            chn == &255
+                                            *chn == ANY_CHANNEL_INTERNAL
                                                 && (cc_number == start_cc_num
                                                     || cc_number == stop_cc_num)
                                         })
@@ -216,14 +219,14 @@ impl Midi {
 
                                         if chn == &channel
                                             && cc_number == start_cc_num
-                                            && value == &127
+                                            && *value == 127
                                         {
                                             to_main_thread.send(Action::Start).unwrap();
                                         }
 
                                         if chn == &channel
                                             && cc_number == stop_cc_num
-                                            && value == &127
+                                            && *value == 127
                                         {
                                             to_main_thread.send(Action::Stop).unwrap();
                                         }
@@ -232,11 +235,11 @@ impl Midi {
                                     for (_, start_cc_num, stop_cc_num) in
                                         any_channel_receive_configs
                                     {
-                                        if cc_number == start_cc_num && value == &127 {
+                                        if cc_number == start_cc_num && *value == 127 {
                                             to_main_thread.send(Action::Start).unwrap();
                                         }
 
-                                        if cc_number == stop_cc_num && value == &127 {
+                                        if cc_number == stop_cc_num && *value == 127 {
                                             to_main_thread.send(Action::Stop).unwrap();
                                         }
                                     }
@@ -292,8 +295,6 @@ impl Midi {
             let receiver_channel = self.receiver_channel.clone();
 
             self.output_thread = Some(std::thread::spawn(move || {
-                let _ = "stuff";
-
                 loop {
                     if let Ok(action) = receiver_channel.recv() {
                         match action {
@@ -301,7 +302,7 @@ impl Midi {
                                 for (port_name, connection, configs) in &output_connections {
                                     for (channel, start_cc_num, _) in configs {
                                         // Send to all channels if channel is 255.
-                                        if channel == &255 {
+                                        if *channel == ANY_CHANNEL_INTERNAL {
                                             for chn in 0..15 {
                                                 if let Err(err) = connection
                                                     .lock()
@@ -332,7 +333,7 @@ impl Midi {
                                 for (port_name, connection, configs) in &output_connections {
                                     for (channel, _, stop_cc_num) in configs {
                                         // Send to all channels if channel is 255.
-                                        if channel == &255 {
+                                        if *channel == ANY_CHANNEL_INTERNAL {
                                             for chn in 0..15 {
                                                 if let Err(err) = connection
                                                     .lock()

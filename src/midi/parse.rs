@@ -1,5 +1,6 @@
 #![allow(clippy::type_complexity)]
 
+use anyhow::anyhow;
 use anyhow::Result;
 use std::collections::HashMap;
 
@@ -95,8 +96,8 @@ fn parse_midi_config_raw(input: &str) -> IResult<&str, Vec<(&str, Vec<(u8, u8, u
 /// Parses the [`MidiConfig`] from the provided configuration string.
 pub fn parse_midi_config(input: &str) -> Result<MidiConfig> {
     let mut map: HashMap<String, Vec<(u8, u8, u8)>> = HashMap::new();
-    let (_, port_configs) = parse_midi_config_raw(input)
-        .map_err(|_| anyhow::anyhow!("Can not parse provided MIDI config."))?;
+    let (_, port_configs) =
+        parse_midi_config_raw(input).map_err(|_| anyhow!("Can not parse provided MIDI config."))?;
     for (name, channel_configs) in port_configs {
         map.insert(name.to_string(), channel_configs);
     }

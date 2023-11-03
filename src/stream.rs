@@ -49,9 +49,7 @@ pub fn build(
     }
 }
 
-#[allow(unused, clippy::type_complexity)]
-/// The buffer here will be lock free later.
-/// I'm just doing things fast for now.
+#[allow(clippy::type_complexity)]
 fn process<T, U>(
     channels_to_record: Vec<usize>,
     writers_in_stream: Arc<Mutex<Option<WriterHandles>>>,
@@ -61,11 +59,10 @@ where
     U: Sample + hound::Sample + FromSample<T>,
 {
     Box::new(move |data: &[T], _: &_| {
-        // TODO: A shared atomic queue will be supplied later on.
-        // There will be no allocations here.
-        // Also no locking.
-        // I just need to get this working today :)
-        // Will update later.
+        // We really don't do much here. We just record the data to the files.
+        // So avoiding continuous allocation is not a priority.
+        // We have a lot of time to do processing in every call to this function, so we can afford to do some allocation.
+        // Premature optimization is the root of all evil. :)
         let mut channel_buffer = Vec::<Vec<T>>::with_capacity(channels_to_record.len());
 
         for _ in 0..channels_to_record.len() {

@@ -12,8 +12,10 @@ use config::{choose_device, choose_host};
 use cpal::traits::{DeviceTrait, StreamTrait};
 use hound::WavWriter;
 use osc::Osc;
+use std::cell::RefCell;
 use std::fs::File;
 use std::io::BufWriter;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use types::Action;
 
@@ -21,45 +23,69 @@ use crate::config::{choose_channels_to_record, SmrecConfig};
 use crate::midi::Midi;
 
 #[derive(Parser)]
-#[command(author, version, about, long_about = None)] // Read from `Cargo.toml`
+#[command(
+    author,
+    version,
+    about = "Minimalist multi-track audio recorder which may be controlled via OSC or MIDI.
+You may visit <https://github.com/alisomay/smrec/blob/main/README.md> for a detailed tutorial."
+)]
 struct Cli {
-    #[arg(long)]
-    asio: bool,
-    #[arg(long)]
+    /// Specify audio host.
+    /// Example: smrec --host "Asio"
+    #[clap(long)]
     host: Option<String>,
-    #[arg(long)]
+    /// Specify audio device.
+    /// Example: smrec --device "MacBook Pro Microphone"
+    #[clap(long)]
     device: Option<String>,
+    /// Include specified channels in recording.
+    /// Example: smrec --include 1,2
     #[clap(long, value_delimiter = ',', num_args = 1..)]
     include: Option<Vec<usize>>,
+    /// Exclude specified channels from recording.
+    /// Example: smrec --exclude 1
     #[clap(long, value_delimiter = ',', num_args = 1..)]
     exclude: Option<Vec<usize>>,
-    #[arg(long)]
+    /// Specify path to configuration file.
+    /// Example: smrec --config "./config.toml"
+    #[clap(long)]
     config: Option<String>,
-    #[arg(long)]
+    /// Specify directory for recording output.
+    /// Example: smrec --out ~/Music
+    #[clap(long)]
     out: Option<String>,
-    #[arg(long)]
+    /// Specify recording duration in seconds.
+    /// Example: smrec --duration 10
+    #[clap(long)]
     duration: Option<String>,
-
-    #[clap(long, value_delimiter = ';', num_args = 0..2, default_value = "EMPTY_HACK")]
+    /// Configure OSC control.
+    /// Example: smrec --osc "0.0.0.0:18000;255.255.255.255:18001"
+    #[clap(long, value_delimiter = ';', num_args = 0..2, default_value = "EMPTY_HACK", hide_default_value = true)]
     osc: Vec<String>,
-
-    #[clap(long, value_delimiter = ';', num_args = 0..2, default_value = "EMPTY_HACK")]
+    /// Configure MIDI control.
+    /// Example: smrec --midi my first port[(1,2,3), (15, 127, 126), (12,4,5)], my second port[(1,2,3)]
+    #[clap(long, value_delimiter = ';', num_args = 0..2, default_value = "EMPTY_HACK", hide_default_value = true)]
     midi: Vec<String>,
 
-    #[command(subcommand)]
+    #[clap(subcommand)]
     command: Option<Commands>,
 }
 
 #[derive(Subcommand)]
 enum Commands {
     /// Lists hosts, devices and configs.
+    #[clap(about = "Lists hosts, devices and configs.")]
     List(List),
 }
 
 #[derive(Parser)]
 struct List {
+    /// List MIDI configurations.
+    /// Example: smrec list --midi
     #[clap(long)]
     midi: bool,
+    /// List audio configurations.
+    /// Example: smrec list --audio
     #[clap(long)]
     audio: bool,
 }
@@ -70,7 +96,7 @@ pub type WriterHandles = Arc<Vec<WriterHandle>>;
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
-    let host = choose_host(cli.host, cli.asio)?;
+    let host = choose_host(cli.host)?;
 
     if let Some(command) = cli.command {
         match command {
@@ -94,7 +120,7 @@ fn main() -> Result<()> {
 
     let device = choose_device(&host, cli.device)?;
     let writers_container: Arc<Mutex<Option<WriterHandles>>> = Arc::new(Mutex::new(None));
-    let stream_container: Arc<Mutex<Option<cpal::Stream>>> = Arc::new(Mutex::new(None));
+    let stream_container: Rc<RefCell<Option<cpal::Stream>>> = Rc::new(RefCell::new(None));
 
     if let Ok(config) = device.default_input_config() {
         let smrec_config = Arc::new(SmrecConfig::new(
@@ -194,7 +220,7 @@ pub fn listen_and_block_main_thread(
     from_listener_thread: &crossbeam::channel::Receiver<Action>,
     to_listener_thread: &crossbeam::channel::Sender<Action>,
     device: &cpal::Device,
-    stream_container: &Arc<Mutex<Option<cpal::Stream>>>,
+    stream_container: &Rc<RefCell<Option<cpal::Stream>>>,
     writers_container: &Arc<Mutex<Option<WriterHandles>>>,
     smrec_config: &SmrecConfig,
 ) {
@@ -240,12 +266,12 @@ pub fn listen_and_block_main_thread(
 
 pub fn new_recording(
     device: &cpal::Device,
-    stream_container: &Arc<Mutex<Option<cpal::Stream>>>,
+    stream_container: &Rc<RefCell<Option<cpal::Stream>>>,
     writer_handles: &Arc<Mutex<Option<WriterHandles>>>,
     smrec_config: &SmrecConfig,
 ) -> Result<()> {
     // If there's an active stream, pause it and finalize the writers
-    if let Some(stream) = stream_container.lock().unwrap().as_mut() {
+    if let Some(stream) = stream_container.borrow_mut().as_mut() {
         stream.pause()?;
         finalize_writers_if_some(writer_handles).unwrap();
         println!("Restarting new recording...");
@@ -281,19 +307,18 @@ pub fn new_recording(
 
     new_stream.play()?;
     println!("Recording started.");
-    stream_container.lock().unwrap().replace(new_stream);
+    stream_container.borrow_mut().replace(new_stream);
 
     Ok(())
 }
 
 pub fn stop_recording(
-    stream_container: &Arc<Mutex<Option<cpal::Stream>>>,
+    stream_container: &Rc<RefCell<Option<cpal::Stream>>>,
     writer_handles: &Arc<Mutex<Option<WriterHandles>>>,
 ) -> Result<()> {
     println!("Stopping recording...");
 
-    let mut stream_guard = stream_container.lock().unwrap();
-    if let Some(stream) = stream_guard.take() {
+    if let Some(stream) = stream_container.borrow_mut().take() {
         stream.pause()?;
         finalize_writers_if_some(writer_handles)?;
         println!("Recording stopped.");

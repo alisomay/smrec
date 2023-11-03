@@ -1,5 +1,8 @@
 set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 
+build-win:
+    . .\pre-build-win.ps1
+    cargo build --release
 install-win:
     . .\pre-build-win.ps1
     cargo build --release

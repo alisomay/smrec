@@ -258,11 +258,10 @@ As a last example to get the hang of it, this configuration string will listen f
 I'm going to make sure,
 
 - Installation gets smoother
-- Help is complete
+- Proper distribution packages are provided
 - Documentation is complete
 - Bugs are fixed
 - Better messages to the user
-- That the software is lock free enough and remove unnecessary allocations
 
 But I don't plan to heavily maintain this project, I'll just make sure that it is usable enough and lives.
 

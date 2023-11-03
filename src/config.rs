@@ -46,9 +46,9 @@ pub fn choose_channels_to_record(
 }
 
 /// Chooses the host to use.
-pub fn choose_host(host: Option<String>, _asio: bool) -> Result<cpal::Host> {
+pub fn choose_host(host: Option<String>) -> Result<cpal::Host> {
     #[cfg(target_os = "windows")]
-    if _asio {
+    if host.as_ref().map_or(false, |host| host == "Asio") {
         return Ok(cpal::host_from_id(cpal::HostId::Asio).expect("Failed to initialise ASIO host."));
     }
 
