@@ -272,8 +272,8 @@ But I don't plan to heavily maintain this project, I'll just make sure that it i
     - `x86_64` ✅
     - `aarch64` ✅
   - linux:
-    - `x86_64` (Should work but not checked yet, will be checked though)
-    - `aarch64` (Should work but not checked yet, will be checked though)
+    - `x86_64` ✅
+    - `aarch64` ✅
   - windows:
     - `x86_64` ✅
     - `aarch64` ✅
