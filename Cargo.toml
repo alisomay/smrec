@@ -23,9 +23,17 @@ exclude = [
 cpal = { git = "https://github.com/RustAudio/cpal.git", features = ["asio"] }
 midir = { version = "0.9", features = ["winrt"] }
 
+[target.'cfg(target_os = "linux")'.dependencies]
+cpal = { git = "https://github.com/RustAudio/cpal.git", features = ["jack"] }
+midir = { version = "0.9", features = ["jack"] }
+
 # [target.'cfg(target_os = "windows")'.dependencies]
 # cpal = { version = "0.15", features = ["asio"] }
 # midir = { version = "0.9", features = ["winrt"] }
+
+# [target.'cfg(target_os = "linux")'.dependencies]
+# cpal = { version = "0.15", features = ["jack"] }
+# midir = { version = "0.9", features = ["jack"] }
 
 [dependencies]
 midir = "0.9"

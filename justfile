@@ -8,3 +8,5 @@ install-win:
     cargo build --release
     Copy-Item -Path {{ justfile_directory() }}\target\release\smrec.exe -Destination {{ env_var_or_default("USERPROFILE", "") }}\.cargo\bin\
 
+prepare-linux:
+    ./pre-build-linux.sh
