@@ -1,7 +1,9 @@
 use cpal::{FromSample, Sample};
-use std::fs::File;
-use std::io::BufWriter;
-use std::sync::{Arc, Mutex};
+use std::{
+    fs::File,
+    io::BufWriter,
+    sync::{Arc, Mutex},
+};
 
 pub fn sample_format(format: cpal::SampleFormat) -> hound::SampleFormat {
     if format.is_float() {
@@ -32,7 +34,7 @@ pub fn write_input_data<T, U>(
 {
     if let Ok(mut guard) = writer.try_lock() {
         if let Some(writer) = guard.as_mut() {
-            for &sample in input.iter() {
+            for &sample in input {
                 let sample: U = U::from_sample(sample);
                 writer.write_sample(sample).ok();
             }

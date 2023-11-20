@@ -1,9 +1,7 @@
 #![allow(clippy::type_complexity)]
 
-use anyhow::anyhow;
-use anyhow::Result;
-use std::collections::HashMap;
-
+use crate::midi::MidiConfig;
+use anyhow::{anyhow, Result};
 use nom::{
     branch::alt,
     bytes::complete::take_until,
@@ -13,8 +11,7 @@ use nom::{
     sequence::{delimited, preceded, tuple},
     IResult,
 };
-
-use crate::midi::MidiConfig;
+use std::collections::HashMap;
 
 /// Parses * or a u8 ranged number
 fn parse_u8_or_star(input: &str) -> IResult<&str, u8> {
