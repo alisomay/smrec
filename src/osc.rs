@@ -1,10 +1,11 @@
 use crate::types::Action;
 use anyhow::Result;
-use rosc::encoder::encode;
-use rosc::{OscMessage, OscPacket, OscType};
-use std::net::{SocketAddr, UdpSocket};
-use std::str::FromStr;
-use std::sync::Arc;
+use rosc::{encoder::encode, OscMessage, OscPacket, OscType};
+use std::{
+    net::{SocketAddr, UdpSocket},
+    str::FromStr,
+    sync::Arc,
+};
 
 pub struct Osc {
     sender_socket: Arc<UdpSocket>,

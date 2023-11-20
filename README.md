@@ -133,9 +133,9 @@ The configuration file can configure:
 
 ```toml
 [channel_names]
-1 = "Kick"
-2 = "Snare"
-3 = "Hi-Hat"
+1 = "Kick.wav"
+2 = "Snare.wav"
+3 = "Hi-Hat.wav"
 ```
 
 - More to come..
@@ -272,8 +272,8 @@ But I don't plan to heavily maintain this project, I'll just make sure that it i
     - `x86_64` ✅
     - `aarch64` ✅
   - linux:
-    - `x86_64` (Should work but not checked yet, will be checked though)
-    - `aarch64` (Should work but not checked yet, will be checked though)
+    - `x86_64` ✅
+    - `aarch64` ✅
   - windows:
     - `x86_64` ✅
     - `aarch64` ✅

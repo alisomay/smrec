@@ -1,6 +1,6 @@
 [package]
 name = "smrec"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["alisomay <alisomay@runbox.com>"]
 edition = "2021"
 license = "MIT"
@@ -16,7 +16,6 @@ exclude = [
     "assets/favicon/*",
     "assets/logo_*"
 ]
-
 
 # When https://github.com/RustAudio/cpal/issues/794 is resolved this can continue to track the stable release.
 [target.'cfg(target_os = "windows")'.dependencies]

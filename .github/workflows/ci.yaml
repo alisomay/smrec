@@ -1,0 +1,152 @@
+name: CI/CD
+permissions: write-all
+on: [push]
+env:
+  CRATE_NAME: smrec
+  GITHUB_TOKEN: ${{ github.token }}
+  RUST_BACKTRACE: 1
+jobs:
+  test:
+    name: ${{ matrix.platform.os_name }} with rust ${{ matrix.toolchain }}
+    runs-on: ${{ matrix.platform.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          # Linux Gnu
+          - os_name: Linux-x86_64
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            bin: smrec
+            name: smrec-Linux-x86_64-gnu.tar.gz
+          # - os_name: Linux-i686
+          #   os: ubuntu-latest
+          #   target: i686-unknown-linux-gnu
+          #   bin: smrec
+          #   name: smrec-Linux-i686-gnu.tar.gz
+
+          # Linux Gnu Arm
+          - os_name: Linux-aarch64
+            os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            bin: smrec
+            name: smrec-Linux-aarch64-gnu.tar.gz
+          - os_name: Linux-armv7
+            os: ubuntu-latest
+            target: armv7-unknown-linux-gnueabihf
+            bin: smrec
+            name: smrec-Linux-armv7-gnueabihf.tar.gz
+
+          # Windows Arm
+          - os_name: Windows-aarch64
+            os: windows-latest
+            target: aarch64-pc-windows-msvc
+            bin: smrec.exe
+            name: smrec-Windows-aarch64.zip
+            skip_tests: true
+
+          # Windows
+          - os_name: Windows-i686
+            os: windows-latest
+            target: i686-pc-windows-msvc
+            bin: smrec.exe
+            name: smrec-Windows-i686.zip
+            skip_tests: true
+          - os_name: Windows-x86_64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            bin: smrec.exe
+            name: smrec-Windows-x86_64.zip
+
+          # macOS
+          - os_name: macOS-x86_64
+            os: macOS-latest
+            target: x86_64-apple-darwin
+            bin: smrec
+            name: smrec-Darwin-x86_64.tar.gz
+
+          # macOS Arm
+          - os_name: macOS-aarch64
+            os: macOS-latest
+            target: aarch64-apple-darwin
+            bin: smrec
+            name: smrec-Darwin-aarch64.tar.gz
+            skip_tests: true
+        toolchain:
+          - stable
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache cargo & target directories
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: "v2"
+
+      - name: Configure Git
+        run: |
+          git config --global user.email "alisomay@runbox.com"
+          git config --global user.name "Ali Somay"
+
+      - name: Install alsa & jack libraries
+        run: sudo apt-get update && sudo apt-get install -y libjack-jackd2-dev libasound2-dev
+        if: matrix.platform.target == 'x86_64-unknown-linux-gnu'
+
+      # --locked can be added later
+      - name: Build binary
+        uses: houseabsolute/actions-rust-cross@v0
+        with:
+          command: "build"
+          target: ${{ matrix.platform.target }}
+          toolchain: ${{ matrix.toolchain }}
+          args: "--release"
+          strip: true
+        env:
+          # Build environment variables
+          GITHUB_ENV: ${{ github.workspace }}/.env
+
+      # --locked can be added later
+      - name: Run tests
+        uses: houseabsolute/actions-rust-cross@v0
+        with:
+          command: "test"
+          target: ${{ matrix.platform.target }}
+          toolchain: ${{ matrix.toolchain }}
+          args: "--release"
+        if: ${{ !matrix.platform.skip_tests }}
+
+      - name: Package as archive
+        shell: bash
+        run: |
+          cd target/${{ matrix.platform.target }}/release
+          if [[ "${{ matrix.platform.os }}" == "windows-latest" ]]; then
+            7z a ../../../${{ matrix.platform.name }} ${{ matrix.platform.bin }}
+          else
+            tar czvf ../../../${{ matrix.platform.name }} ${{ matrix.platform.bin }}
+          fi
+          cd -
+        if: |
+          matrix.toolchain == 'stable' &&
+          ( startsWith( github.ref, 'refs/tags/v' ) ||
+            github.ref == 'refs/tags/test-release' )
+
+      - name: Publish release artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: smrec-${{ matrix.platform.os_name }}
+          path: "smrec-*"
+        if: matrix.toolchain == 'stable' && github.ref == 'refs/tags/test-release'
+
+      - name: Generate SHA-256
+        run: shasum -a 256 ${{ matrix.platform.name }}
+        if: |
+          matrix.toolchain == 'stable' &&
+          matrix.platform.os == 'macOS-latest' &&
+          ( startsWith( github.ref, 'refs/tags/v' ) ||
+            github.ref == 'refs/tags/test-release' )
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          files: "smrec*"
+          body_path: CHANGELOG.md
+        if: matrix.toolchain == 'stable' && startsWith( github.ref, 'refs/tags/v' )
