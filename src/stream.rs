@@ -1,11 +1,7 @@
+use crate::{wav::write_input_data, WriterHandles};
 use anyhow::{bail, Result};
-use cpal::traits::DeviceTrait;
-use cpal::{FromSample, Sample};
-
+use cpal::{traits::DeviceTrait, FromSample, Sample};
 use std::sync::{Arc, Mutex};
-
-use crate::wav::write_input_data;
-use crate::WriterHandles;
 
 pub fn build(
     device: &cpal::Device,

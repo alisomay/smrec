@@ -1,16 +1,21 @@
-use crate::wav::spec_from_config;
-use crate::WriterHandles;
+use crate::{wav::spec_from_config, WriterHandles};
 use anyhow::{anyhow, bail, Result};
 use camino::Utf8PathBuf;
 use chrono::{Datelike, Timelike, Utc};
-use cpal::traits::{DeviceTrait, HostTrait};
-use cpal::SupportedStreamConfig;
-use serde::de::{self, Deserializer, MapAccess, Visitor};
-use serde::Deserialize;
-use std::collections::HashMap;
-use std::fmt;
-use std::str::FromStr;
-use std::sync::{Arc, Mutex};
+use cpal::{
+    traits::{DeviceTrait, HostTrait},
+    SupportedStreamConfig,
+};
+use serde::{
+    de::{self, Deserializer, MapAccess, Visitor},
+    Deserialize,
+};
+use std::{
+    collections::HashMap,
+    fmt,
+    str::FromStr,
+    sync::{Arc, Mutex},
+};
 
 /// Chooses which channels to record.
 pub fn choose_channels_to_record(
@@ -132,17 +137,20 @@ impl SmrecConfig {
             config.channels_to_record = channels_to_record;
 
             config.channels_to_record.iter().for_each(|channel| {
-                if !config.channel_names.contains_key(&(channel + 1)) {
+                if config.channel_names.contains_key(&(channel + 1)) {
+                    let name = config.channel_names.get(&(channel + 1)).unwrap();
+                    if !std::path::Path::new(name)
+                        .extension()
+                        .map_or(false, |ext| ext.eq_ignore_ascii_case("wav"))
+                    {
+                        config
+                            .channel_names
+                            .insert(*channel + 1, format!("{name}.wav"));
+                    }
+                } else {
                     config
                         .channel_names
                         .insert(*channel + 1, format!("chn_{}.wav", channel + 1));
-                } else {
-                    let name = config.channel_names.get(&(channel + 1)).unwrap();
-                    if !name.ends_with(".wav") {
-                        config
-                            .channel_names
-                            .insert(*channel + 1, format!("{}.wav", name));
-                    }
                 }
             });
             config.cpal_stream_config = Some(cpal_stream_config);

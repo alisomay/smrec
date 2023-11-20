@@ -1,3 +1,34 @@
+// Most of the lints we deny here have a good chance to be relevant for our project.
+#![deny(clippy::all)]
+// We warn for all lints on the planet. Just to filter them later for customization.
+// It is impossible to remember all the lints so a subtractive approach keeps us updated, in control and knowledgeable.
+#![warn(clippy::pedantic, clippy::nursery, clippy::cargo)]
+// Then in the end we allow ridiculous or too restrictive lints that are not relevant for our project.
+// This list is dynamic and will grow in time which will define our style.
+#![allow(
+    clippy::multiple_crate_versions,
+    clippy::blanket_clippy_restriction_lints,
+    clippy::missing_docs_in_private_items,
+    clippy::pub_use,
+    clippy::std_instead_of_alloc,
+    clippy::std_instead_of_core,
+    clippy::implicit_return,
+    clippy::missing_inline_in_public_items,
+    clippy::similar_names,
+    clippy::question_mark_used,
+    clippy::expect_used,
+    clippy::missing_errors_doc,
+    clippy::pattern_type_mismatch,
+    clippy::module_name_repetitions,
+    clippy::empty_structs_with_brackets,
+    clippy::as_conversions,
+    clippy::self_named_module_files,
+    clippy::cargo_common_metadata,
+    clippy::exhaustive_structs,
+    // It is a binary crate, panicing is usually fine.
+    clippy::missing_panics_doc
+)]
+
 mod config;
 mod list;
 mod midi;
@@ -6,21 +37,24 @@ mod stream;
 mod types;
 mod wav;
 
+use crate::{
+    config::{choose_channels_to_record, SmrecConfig},
+    midi::Midi,
+};
 use anyhow::{bail, Result};
 use clap::{Parser, Subcommand};
 use config::{choose_device, choose_host};
 use cpal::traits::{DeviceTrait, StreamTrait};
 use hound::WavWriter;
 use osc::Osc;
-use std::cell::RefCell;
-use std::fs::File;
-use std::io::BufWriter;
-use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::{
+    cell::RefCell,
+    fs::File,
+    io::BufWriter,
+    rc::Rc,
+    sync::{Arc, Mutex},
+};
 use types::Action;
-
-use crate::config::{choose_channels_to_record, SmrecConfig};
-use crate::midi::Midi;
 
 #[derive(Parser)]
 #[command(
@@ -93,6 +127,7 @@ struct List {
 pub type WriterHandle = Arc<Mutex<Option<WavWriter<BufWriter<File>>>>>;
 pub type WriterHandles = Arc<Vec<WriterHandle>>;
 
+#[allow(clippy::too_many_lines)]
 fn main() -> Result<()> {
     let cli = Cli::parse();
 

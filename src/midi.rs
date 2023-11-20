@@ -8,10 +8,12 @@ use anyhow::{bail, Result};
 use midir::{
     MidiInput, MidiInputConnection, MidiInputPort, MidiOutput, MidiOutputConnection, MidiOutputPort,
 };
-use std::collections::HashMap;
-use std::ops::Deref;
-use std::str::FromStr;
-use std::sync::{Arc, Mutex};
+use std::{
+    collections::HashMap,
+    ops::Deref,
+    str::FromStr,
+    sync::{Arc, Mutex},
+};
 
 enum MessageType {
     NoteOff,
@@ -45,7 +47,7 @@ const fn make_cc_message(channel: u8, cc_num: u8, value: u8) -> [u8; 3] {
     [0xB0 + channel, cc_num, value]
 }
 
-/// HashMap of port name to vector of (channel_num, cc_num[start], cc_num[stop])
+/// `HashMap` of port name to vector of (`channel_num`, `cc_num`[start], `cc_num`[stop])
 #[derive(Debug, Clone)]
 pub struct MidiConfig(HashMap<String, Vec<(u8, u8, u8)>>);
 
@@ -160,9 +162,10 @@ impl Midi {
         })
     }
 
-    pub fn listen(&mut self) -> Result<()> {
-        let input_ports = self
-            .input_config
+    // These are going to be addressed in a later refactor.
+    #[allow(clippy::type_complexity)]
+    fn input_ports_from_configs(&self) -> Result<Vec<(String, MidiInputPort, Vec<(u8, u8, u8)>)>> {
+        self.input_config
             .iter()
             .filter_map(|(port_name, configs)| {
                 let input_ports = self.find_input_ports(port_name).ok()?;
@@ -175,7 +178,11 @@ impl Midi {
             })
             .flatten()
             .map(Ok)
-            .collect::<Result<Vec<(String, MidiInputPort, Vec<(u8, u8, u8)>)>, anyhow::Error>>()?;
+            .collect::<Result<Vec<(String, MidiInputPort, Vec<(u8, u8, u8)>)>, anyhow::Error>>()
+    }
+
+    fn register_midi_input_hooks(&mut self) -> Result<()> {
+        let input_ports = self.input_ports_from_configs()?;
 
         // Start listening for MIDI messages on all configured ports and channels.
         for (port_name, port, configs) in input_ports {
@@ -254,46 +261,59 @@ impl Midi {
             );
         }
 
+        Ok(())
+    }
+
+    // These are going to be addressed in a later refactor.
+    #[allow(clippy::type_complexity)]
+    fn output_connections_from_config(
+        &self,
+    ) -> Result<Option<Vec<(String, Arc<Mutex<MidiOutputConnection>>, Vec<(u8, u8, u8)>)>>> {
         if let Some(ref output_config) = self.output_config {
-            let output_connections = {
-                let output_ports = output_config
-                    .iter()
-                    .filter_map(|(port_name, configs)| {
-                        let output_ports = self.find_output_ports(port_name).ok()?;
-                        Some(
-                            output_ports
-                                .into_iter()
-                                .map(move |(name, port)| (name, port, configs.clone()))
-                                .collect::<Vec<_>>(),
-                        )
-                    })
-                    .flatten()
-                    .map(Ok)
-                    .collect::<Result<Vec<(String, MidiOutputPort, Vec<(u8, u8, u8)>)>, anyhow::Error>>()?;
+            let output_ports = output_config
+                .iter()
+                .filter_map(|(port_name, configs)| {
+                    let output_ports = self.find_output_ports(port_name).ok()?;
+                    Some(
+                        output_ports
+                            .into_iter()
+                            .map(move |(name, port)| (name, port, configs.clone()))
+                            .collect::<Vec<_>>(),
+                    )
+                })
+                .flatten()
+                .map(Ok)
+                .collect::<Result<Vec<(String, MidiOutputPort, Vec<(u8, u8, u8)>)>, anyhow::Error>>(
+                )?;
 
-                output_ports
-                    .iter()
-                    .map(|(port_name, port, configs)| {
-                        let output = MidiOutput::new("smrec")?;
-                        Ok::<
-                            (
-                                std::string::String,
-                                Arc<Mutex<MidiOutputConnection>>,
-                                std::vec::Vec<(u8, u8, u8)>,
-                            ),
-                            anyhow::Error,
-                        >((
-                            port_name.clone(),
-                            Arc::new(Mutex::new(output.connect(port, port_name).expect("Could not bind to {port_name}"))),
-                            configs.clone(),
-                        ))
-                    })
-                    .collect::<Result<Vec<(String, Arc<Mutex<MidiOutputConnection>>, Vec<(u8, u8, u8)>)>, _>>(
-                    )?
-            };
+            return output_ports
+                .iter()
+                .map(|(port_name, port, configs)| {
+                    let output = MidiOutput::new("smrec")?;
+                    Ok(Some((
+                        port_name.clone(),
+                        Arc::new(Mutex::new(
+                            output
+                                .connect(port, port_name)
+                                .expect("Could not bind to {port_name}"),
+                        )),
+                        configs.clone(),
+                    )))
+                })
+                .collect::<Result<
+                    Option<Vec<(String, Arc<Mutex<MidiOutputConnection>>, Vec<(u8, u8, u8)>)>>,
+                    _,
+                >>();
+        }
 
-            let receiver_channel = self.receiver_channel.clone();
+        Ok(None)
+    }
 
+    fn spin_midi_output_thread_if_necessary(&mut self) -> Result<()> {
+        let output_connections = self.output_connections_from_config()?;
+        let receiver_channel = self.receiver_channel.clone();
+
+        if let Some(output_connections) = output_connections {
             self.output_thread = Some(std::thread::spawn(move || {
                 loop {
                     if let Ok(action) = receiver_channel.recv() {
@@ -368,6 +388,13 @@ impl Midi {
                 }
             }));
         }
+
+        Ok(())
+    }
+
+    pub fn listen(&mut self) -> Result<()> {
+        self.register_midi_input_hooks()?;
+        self.spin_midi_output_thread_if_necessary()?;
 
         Ok(())
     }
