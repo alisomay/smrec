@@ -2,12 +2,17 @@
 linker = "aarch64-linux-gnu-gcc"
 rustflags = [
   "-C", "link-arg=-Bstatic",
-  # Other flags as needed
 ]
 
 [target.armv7-unknown-linux-gnueabihf]
 linker = "arm-linux-gnueabihf-gcc"
 rustflags = [
   "-C", "link-arg=-Bstatic",
-  # Other flags as needed
 ]
+
+# [target.i686-unknown-linux-gnu]
+# linker = "i686-linux-gnu-gcc"
+# rustflags = [
+#   "-C", "link-arg=-Bstatic",
+# ]
+

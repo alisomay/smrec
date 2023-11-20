@@ -1,4 +1,4 @@
-name: Tests and release
+name: CI/CD
 on: [push]
 env:
   CRATE_NAME: smrec
@@ -18,6 +18,11 @@ jobs:
             target: x86_64-unknown-linux-gnu
             bin: smrec
             name: smrec-Linux-x86_64-gnu.tar.gz
+          # - os_name: Linux-i686
+          #   os: ubuntu-latest
+          #   target: i686-unknown-linux-gnu
+          #   bin: smrec
+          #   name: smrec-Linux-i686-gnu.tar.gz
 
           # Linux Gnu Arm
           - os_name: Linux-aarch64
@@ -68,15 +73,13 @@ jobs:
             skip_tests: true
         toolchain:
           - stable
-        #   - beta
-        #   - nightly
     steps:
       - uses: actions/checkout@v4
       - name: Cache cargo & target directories
         uses: Swatinem/rust-cache@v2
         with:
           key: "v2"
-      # Why?
+
       - name: Configure Git
         run: |
           git config --global user.email "alisomay@runbox.com"
